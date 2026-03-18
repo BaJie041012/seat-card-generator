@@ -88,7 +88,7 @@ reportlab>=3.6.0  # PDF支持
 ### 1. 克隆仓库
 
 ```bash
-git clone https://github.com/your-username/printf.git
+git clone https://github.com/BaJie041012/printf.git
 cd printf
 ```
 
