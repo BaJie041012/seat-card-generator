@@ -1,321 +1,243 @@
-# 自动化文本处理与模板填充程序
+# 文本处理与模板填充程序
 
-[!\[Python\](https://img.shields.io/badge/Python-3.8+-blue.svg null)](https://www.python.org/)
-[!\[License\](https://img.shields.io/badge/License-MIT-green.svg null)](LICENSE)
+![Python](https://img.shields.io/badge/python-3.7%2B-blue)
+![Flask](https://img.shields.io/badge/flask-2.0%2B-green)
+![License](https://img.shields.io/badge/license-MIT-yellow)
 
-一款基于AI的智能文本处理与模板填充工具，支持从非结构化文本中提取人员信息，并自动生成席卡文档。
+## 项目介绍
 
-## 📋 目录
-
-- [项目概述](#项目概述)
-- [功能特性](#功能特性)
-- [环境要求](#环境要求)
-- [安装步骤](#安装步骤)
-- [使用方法](#使用方法)
-- [核心功能演示](#核心功能演示)
-- [项目结构](#项目结构)
-- [配置说明](#配置说明)
-- [常见问题解答](#常见问题解答)
-- [贡献指南](#贡献指南)
-- [许可证](#许可证)
-
-## 项目概述
-
-本项目是一个自动化文本处理工具，主要解决以下问题：
-
-1. **信息提取**：从格式不一的文本中智能提取姓名、单位、职位等结构化信息
-2. **席卡生成**：根据提取的信息自动生成会议席卡文档
-3. **模板填充**：支持多种格式的模板文件填充
-
-### 应用场景
-
-- 会议席卡批量生成
-- 人员名单信息提取
-- 模板文档自动填充
-- 结构化数据导出
+本项目是一个自动化文本处理与模板填充程序，支持席卡生成、人员信息提取等功能。通过添加网络服务模块，现在可以在本地部署并允许同一网段内的其他设备访问。
 
 ## 功能特性
 
-### 🤖 AI智能提取
+### 本地功能
 
-- 支持从非结构化文本中提取姓名、单位、职位
-- 自动识别多种文本格式
-- 高准确率的信息提取
+- **席卡生成**：根据输入的人员信息，自动生成席卡文档
+- **AI智能提取**：使用AI服务从文本中提取人员信息（姓名、公司、职位）
+- **模板管理**：支持多种模板格式，可自定义模板
+- **Word转PDF**：自动将生成的Word文档转换为PDF格式
+- **PDF合并**：将多个PDF文件合并为一个合集
+- **质量报告**：生成详细的席卡生成质量报告
 
-### 📝 席卡生成
+### Web功能
 
-- 单人单文件模式，避免空白页问题
-- 支持自定义活动名称
-- 自动格式化两字姓名（插入全角空格）
-- 字体格式自动设置（楷体）
-- 字号智能调整（姓名72pt，公司名36pt）
+- **网络服务**：提供HTTP接口，支持同一网段内的设备访问
+- **Web界面**：提供简单的Web界面，方便操作和查看
+- **API接口**：支持席卡生成、模板列表获取、输出目录查看等API
+- **文件下载**：支持生成文件的在线下载
 
-### 📄 多格式支持
+## 快速开始
 
-- 支持 `.docx` Word文档模板
-- 支持 `.txt` 文本模板
-- 支持 `.pdf` PDF模板（需安装reportlab）
+### 环境要求
 
-### 🖥️ 图形界面
+- Python 3.7+
+- pip 包管理工具
 
-- 基于tkinter的友好界面
-- 实时进度显示
-- 质量验证与报告生成
-
-### 📊 质量控制
-
-- 自动检测空白页
-- 内容完整性验证
-- 详细的生成报告
-
-## 环境要求
-
-### 系统要求
-
-- Windows 10/11
-- macOS 10.14+
-- Linux (Ubuntu 18.04+)
-
-### Python版本
-
-- Python 3.8 或更高版本
-
-### 必需依赖
-
-```
-python-docx>=0.8.11
-```
-
-### 可选依赖
-
-```
-reportlab>=3.6.0  # PDF支持
-```
-
-## 安装步骤
-
-### 1. 克隆仓库
+### 安装依赖
 
 ```bash
-git clone https://github.com/BaJie041012/printf.git
-cd printf
+pip install -r requirements.txt
 ```
 
-### 2. 创建虚拟环境（推荐）
-
-```bash
-# Windows
-python -m venv venv
-venv\Scripts\activate
-
-# macOS/Linux
-python3 -m venv venv
-source venv/bin/activate
-```
-
-### 3. 安装依赖
-
-```bash
-pip install python-docx
-```
-
-如需PDF支持：
-
-```bash
-pip install reportlab
-```
-
-### 4. 配置API密钥
-
-编辑 `config.py` 文件，设置您的AI服务API密钥：
-
-```python
-@dataclass
-class AIConfig:
-    api_key: str = "your-api-key-here"
-    api_base_url: str = "https://api.minimaxi.com/v1"
-    model: str = "MiniMax-M2.5"
-```
-
-## 使用方法
-
-### 图形界面模式
-
-```bash
-python main.py --gui
-```
-
-或直接运行：
+### 本地运行
 
 ```bash
 python main.py
 ```
 
-### 命令行模式
+### 启动Web服务
 
 ```bash
-# 查看帮助
-python main.py --help
-
-# 处理文本
-python main.py --template template.docx --text "要处理的文本"
-
-# 创建示例模板
-python main.py --create-template sample.txt
+python start_server.py
 ```
 
-### 席卡生成流程
-
-1. **输入文本**：在左侧文本框中输入或粘贴人员名单
-2. **设置活动名称**：在"席卡生成"区域输入活动名称
-3. **选择显示内容**：选择显示"姓名"或"公司名"
-4. **选择模板**：在右侧选择席卡模板文件（.docx格式）
-5. **点击生成**：点击"生成"按钮开始生成席卡
-
-## 核心功能演示
-
-### 信息提取示例
-
-**输入文本：**
+服务启动后，会显示以下信息：
 
 ```
-欧阳伟    新疆生产建设兵团第八师副师长、石河子市人民政府副市长
-郑鸿英    新疆生产建设兵团第八师石河子市政务服务和大数据局局长
+=== 文本处理与模板填充服务 ===
+服务启动中...
+本地访问地址: http://localhost:5000
+局域网访问地址: http://192.168.2.157:5000
+
+按 Ctrl+C 停止服务
 ```
 
-**提取结果：**
+### 访问服务
 
-| 姓名  | 单位                       | 职位              |
-| --- | ------------------------ | --------------- |
-| 欧阳伟 | 新疆生产建设兵团第八师              | 副师长、石河子市人民政府副市长 |
-| 郑鸿英 | 新疆生产建设兵团第八师石河子市政务服务和大数据局 | 局长              |
+1. **本地访问**：在浏览器中打开 `http://localhost:5000`
+2. **局域网访问**：在同一网段的其他设备上，打开浏览器访问 `http://[本机IP]:5000`
 
-### 席卡生成示例
+## API接口
 
-**模板占位符：**
+### 1. 席卡生成
 
-- `{活动名称}` - 显示活动名称（楷体，16pt）
-- `{姓名/公司}` - 显示姓名或公司名（楷体，72pt/36pt）
+**POST** `/api/generate-cards`
 
-**生成效果：**
+**参数**：
 
-- 两字姓名自动格式化为"姓　名"（中间插入全角空格）
-- 公司名称使用36pt字号
-- 姓名使用72pt字号
-
-## 项目结构
-
+```json
+{
+    "text": "人员信息文本",
+    "event_name": "活动名称",
+    "display_type": "name",  // 或 "company"
+    "template": "席卡模板v4.docx"
+}
 ```
-printf/
-├── __init__.py          # 包初始化模块
-├── config.py            # 配置管理模块
-├── ai_service.py        # AI服务接口模块
-├── template_processor.py # 模板处理模块
-├── text_extractor.py    # 文本提取模块
-├── gui.py               # 图形界面模块
-├── main.py              # 主程序入口
-├── templates/           # 模板文件目录
-│   └── 席卡模板v4.docx   # 席卡模板示例
-└── output/              # 输出文件目录
-    └── 席卡_活动名_时间戳/
-        ├── 席卡_姓名_日期.docx
-        ├── 席卡_姓名_日期.docx
-        └── 生成报告.txt
+
+**响应**：
+
+```json
+{
+    "success": true,
+    "count": 10,
+    "output_dir": "output/席卡_活动名称_20260325_123456",
+    "word_dir": "output/席卡_活动名称_20260325_123456/word",
+    "pdf_dir": "output/席卡_活动名称_20260325_123456/pdf",
+    "word_files": [
+        {
+            "filename": "席卡_张三_20260325.docx",
+            "file_id": "uuid",
+            "type": "word"
+        }
+    ],
+    "pdf_files": [
+        {
+            "filename": "席卡_张三_20260325.pdf",
+            "file_id": "uuid"
+        }
+    ],
+    "failed": [],
+    "report_id": "uuid",
+    "pdf_combined_id": "uuid"
+}
+```
+
+### 2. 获取模板列表
+
+**GET** `/api/templates`
+
+**响应**：
+
+```json
+{
+    "success": true,
+    "templates": ["席卡模板v4.docx", "name_list_template.txt"]
+}
+```
+
+### 3. 获取输出目录
+
+**GET** `/api/output`
+
+**响应**：
+
+```json
+{
+    "success": true,
+    "output_dir": "output",
+    "files": [
+        {
+            "path": "席卡_活动名称_20260325_123456/席卡_张三_20260325.docx",
+            "size": 12345
+        }
+    ]
+}
 ```
 
 ## 配置说明
 
 ### AI服务配置
 
-| 参数             | 说明       | 默认值                           |
-| -------------- | -------- | ----------------------------- |
-| `api_key`      | API访问密钥  | -                             |
-| `api_base_url` | API服务地址  | `https://api.minimaxi.com/v1` |
-| `model`        | AI模型名称   | `MiniMax-M2.5`                |
-| `max_tokens`   | 最大token数 | `2000`                        |
-| `temperature`  | 生成温度     | `0.7`                         |
-| `timeout`      | 超时时间(秒)  | `30`                          |
+在 `config.py` 文件中配置AI服务参数：
 
-### 模板配置
+```python
+@dataclass
+class AIConfig:
+    api_key: str = "你的API密钥"
+    api_base_url: str = "https://api.minimaxi.com/v1"
+    model: str = "MiniMax-M2.5"
+    max_tokens: int = 2000
+    temperature: float = 0.7
+    timeout: int = 30
+```
 
-| 参数                  | 说明   | 默认值              |
-| ------------------- | ---- | ---------------- |
-| `template_dir`      | 模板目录 | `templates`      |
-| `output_dir`        | 输出目录 | `output`         |
-| `supported_formats` | 支持格式 | `docx, pdf, txt` |
+### 网络服务配置
 
-## 常见问题解答
+在 `server.py` 文件中配置网络服务参数：
 
-### Q1: 生成的席卡显示为空白页？
+```python
+# 服务配置
+SERVER_HOST = '0.0.0.0'  # 监听所有网络接口
+SERVER_PORT = 5000  # 默认端口
+```
 
-**A:** 请确保：
+## 防火墙设置
 
-1. 模板文件中包含正确的占位符（如 `{姓名/公司}`）
-2. 输入文本中包含可提取的人员信息
-3. 查看生成报告中的错误信息
+为了确保同一网段内的设备能够访问服务，需要确保防火墙允许端口 `5000` 的入站连接。
 
-### Q2: 字体显示不正确？
+### Windows系统
 
-**A:** 请确保系统中已安装相应字体：
+1. 打开「控制面板」→「系统和安全」→「Windows Defender 防火墙」
+2. 点击「高级设置」
+3. 点击「入站规则」→「新建规则」
+4. 选择「端口」→「下一步」
+5. 选择「TCP」，输入「5000」作为特定本地端口→「下一步」
+6. 选择「允许连接」→「下一步」
+7. 选择适用的网络类型→「下一步」
+8. 输入规则名称（如「文本处理服务」）→「完成」
 
-- Windows: 检查 `C:\Windows\Fonts` 目录
-- 常见中文字体：楷体(KaiTi)、宋体(SimSun)、黑体(SimHei)
-
-### Q3: API调用失败？
-
-**A:** 请检查：
-
-1. API密钥是否正确配置
-2. 网络连接是否正常
-3. API服务是否可用
-
-### Q4: 如何添加新的模板格式？
-
-**A:** 参考 `template_processor.py` 中的处理器类，继承 `BaseTemplateProcessor` 并实现相应方法。
-
-## 贡献指南
-
-欢迎贡献代码、报告问题或提出建议！
-
-### 开发环境设置
+### Linux系统
 
 ```bash
-# 克隆仓库
-git clone https://github.com/BaJie041012/printf.git
-cd printf
-
-# 安装开发依赖
-pip install -r requirements-dev.txt
-
-# 运行测试
-python -m pytest tests/
+sudo ufw allow 5000/tcp
 ```
 
-### 代码规范
+## 常见问题
 
-- 遵循 PEP 8 编码规范
-- 使用中文注释
-- 为所有函数和类添加文档字符串
+### 1. 服务无法启动
 
-### 提交规范
+- 检查端口是否被占用：`netstat -ano | findstr :5000`
+- 检查依赖是否安装：`pip install -r requirements.txt`
+- 检查AI服务API密钥是否配置
+
+### 2. 局域网设备无法访问
+
+- 检查防火墙是否允许端口5000
+- 检查设备是否在同一网段
+- 检查本机IP地址是否正确
+
+### 3. 席卡生成失败
+
+- 检查模板文件是否存在
+- 检查AI服务是否可用
+- 检查输入文本是否包含有效的人员信息
+
+### 4. PDF转换失败
+
+- 检查是否安装了Microsoft Word
+- 检查是否安装了spire.doc库
+- 检查文件路径是否有特殊字符
+
+## 项目结构
 
 ```
-feat: 添加新功能
-fix: 修复bug
-docs: 文档更新
-style: 代码格式调整
-refactor: 代码重构
-test: 测试相关
+├── server.py          # 网络服务模块
+├── start_server.py    # 启动脚本
+├── main.py            # 主程序入口
+├── gui.py             # GUI界面
+├── config.py          # 配置管理
+├── ai_service.py      # AI服务
+├── template_processor.py  # 模板处理
+├── text_extractor.py  # 文本提取
+├── requirements.txt   # 依赖文件
+├── templates/         # 模板目录
+└── output/            # 输出目录
 ```
 
 ## 许可证
 
-本项目采用 MIT 许可证。详见 [LICENSE](LICENSE) 文件。
+本项目采用 MIT 许可证。
 
-***
+## GitHub地址
 
-**作者**: 戒者有八
-
-**版本**: 1.0.0
-
-**最后更新**: 2026-03-18
+[https://github.com/BaJie041012/printf](https://github.com/BaJie041012/printf)

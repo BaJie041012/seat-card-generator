@@ -617,6 +617,7 @@ class TextProcessorApp:
             采用单人单文件模式，每个人生成一个独立的docx文件。
             创建独立文件夹存储所有席卡，包含时间戳和任务标识。
             实现空白页检测和质量验证机制。
+            支持Word转PDF和PDF合并功能。
         """
         import logging
         from datetime import datetime
@@ -647,12 +648,21 @@ class TextProcessorApp:
             output_dir = os.path.join(CONFIG.template.output_dir, folder_name)
             os.makedirs(output_dir, exist_ok=True)
             
+            # 创建word和pdf子文件夹
+            word_dir = os.path.join(output_dir, "word")
+            pdf_dir = os.path.join(output_dir, "pdf")
+            os.makedirs(word_dir, exist_ok=True)
+            os.makedirs(pdf_dir, exist_ok=True)
+            
             log_data['output_dir'] = output_dir
+            log_data['word_dir'] = word_dir
+            log_data['pdf_dir'] = pdf_dir
             
             # 记录生成结果
             generated_files = []
             failed_persons = []
             card_count = 0
+            pdf_files = []
             
             # 遍历人员信息，为每个人生成一个独立文件
             for i, info in enumerate(infos):
@@ -685,13 +695,13 @@ class TextProcessorApp:
                     date_str = datetime.now().strftime("%Y%m%d")
                     safe_name = self._sanitize_filename(display_text)
                     filename = f"席卡_{safe_name}_{date_str}.docx"
-                    filepath = os.path.join(output_dir, filename)
+                    filepath = os.path.join(word_dir, filename)
                     
                     # 处理文件名冲突
                     counter = 1
                     while os.path.exists(filepath):
                         filename = f"席卡_{safe_name}_{date_str}_{counter}.docx"
-                        filepath = os.path.join(output_dir, filename)
+                        filepath = os.path.join(word_dir, filename)
                         counter += 1
                     
                     # 保存文档
@@ -702,13 +712,30 @@ class TextProcessorApp:
                     validation_result = self._validate_card_document(filepath, display_text, display_type)
                     
                     if validation_result['valid']:
-                        generated_files.append({
-                            'filename': filename,
-                            'filepath': filepath,
-                            'name': display_text,
-                            'valid': True
-                        })
-                        card_count += 1
+                        # 尝试将Word转换为PDF
+                        pdf_filename = filename.replace('.docx', '.pdf')
+                        pdf_filepath = os.path.join(pdf_dir, pdf_filename)
+                        
+                        if self._convert_docx_to_pdf(filepath, pdf_filepath):
+                            pdf_files.append(pdf_filepath)
+                            generated_files.append({
+                                'filename': filename,
+                                'filepath': filepath,
+                                'pdf_filepath': pdf_filepath,
+                                'name': display_text,
+                                'valid': True
+                            })
+                            card_count += 1
+                        else:
+                            log_data['warnings'].append(f"文件 {filename} 转换为PDF失败")
+                            generated_files.append({
+                                'filename': filename,
+                                'filepath': filepath,
+                                'name': display_text,
+                                'valid': True,
+                                'warning': 'PDF转换失败'
+                            })
+                            card_count += 1
                     else:
                         # 空白或内容不完整，尝试重新生成
                         log_data['warnings'].append(f"文件 {filename} 验证失败: {validation_result['reason']}")
@@ -726,6 +753,15 @@ class TextProcessorApp:
                     log_data['errors'].append(error_msg)
                     failed_persons.append(display_text)
             
+            # 生成PDF合集
+            pdf_combined_path = None
+            if pdf_files:
+                pdf_combined_path = os.path.join(output_dir, f"席卡合集_{timestamp}.pdf")
+                if self._merge_pdfs(pdf_files, pdf_combined_path):
+                    log_data['pdf_combined_path'] = pdf_combined_path
+                else:
+                    log_data['warnings'].append("PDF合集生成失败")
+            
             # 生成质量报告
             report_path = os.path.join(output_dir, "生成报告.txt")
             self._generate_quality_report(report_path, log_data, generated_files, failed_persons)
@@ -733,15 +769,19 @@ class TextProcessorApp:
             log_data['end_time'] = datetime.now().isoformat()
             log_data['generated_count'] = card_count
             log_data['failed_count'] = len(failed_persons)
+            log_data['pdf_count'] = len(pdf_files)
             
             return {
                 'success': True,
                 'count': card_count,
                 'output_dir': output_dir,
+                'word_dir': word_dir,
+                'pdf_dir': pdf_dir,
                 'files': generated_files,
                 'failed': failed_persons,
                 'log': log_data,
-                'report_path': report_path
+                'report_path': report_path,
+                'pdf_combined_path': pdf_combined_path
             }
             
         except ImportError:
@@ -838,6 +878,75 @@ class TextProcessorApp:
         except Exception as e:
             return {'valid': False, 'reason': f'验证过程出错: {str(e)}'}
     
+    def _convert_docx_to_pdf(self, docx_path: str, pdf_path: str) -> bool:
+        """
+        将Word文档转换为PDF
+        
+        参数:
+            docx_path: Word文档路径
+            pdf_path: 输出PDF路径
+        
+        返回值:
+            bool: 转换是否成功
+        """
+        try:
+            import win32com.client
+            import os
+            
+            # 使用Word.Application进行转换
+            word = win32com.client.Dispatch('Word.Application')
+            word.Visible = False
+            
+            try:
+                doc = word.Documents.Open(os.path.abspath(docx_path))
+                doc.SaveAs(os.path.abspath(pdf_path), FileFormat=17)  # 17是PDF格式
+                doc.Close()
+                return True
+            finally:
+                word.Quit()
+        except Exception as e:
+            # 转换失败，尝试使用spire.doc作为备选方案
+            try:
+                from spire.doc import Document as SpireDocument
+                
+                doc = SpireDocument()
+                doc.LoadFromFile(docx_path)
+                doc.SaveToFile(pdf_path, 1)
+                doc.Close()
+                return True
+            except:
+                return False
+    
+    def _merge_pdfs(self, pdf_files: list, output_path: str) -> bool:
+        """
+        合并多个PDF文件为一个
+        
+        参数:
+            pdf_files: PDF文件路径列表
+            output_path: 输出文件路径
+        
+        返回值:
+            bool: 合并是否成功
+        """
+        try:
+            from PyPDF2 import PdfWriter, PdfReader
+            
+            merger = PdfWriter()
+            
+            for pdf_file in pdf_files:
+                with open(pdf_file, 'rb') as f:
+                    reader = PdfReader(f)
+                    for page_num in range(len(reader.pages)):
+                        page = reader.pages[page_num]
+                        merger.add_page(page)
+            
+            with open(output_path, 'wb') as f:
+                merger.write(f)
+            
+            return True
+        except Exception as e:
+            return False
+    
     # --------------------------------------------------------------------------
     # 生成质量报告
     # 功能: 生成详细的席卡生成质量报告
@@ -853,6 +962,7 @@ class TextProcessorApp:
             failed_persons: 失败的人员列表
         """
         from datetime import datetime
+        import os
         
         report_lines = [
             "=" * 60,
@@ -865,15 +975,30 @@ class TextProcessorApp:
             f"总人数: {log_data.get('total_persons', 0)}",
             f"成功生成: {len([f for f in generated_files if f.get('valid', False)])}",
             f"验证失败: {len([f for f in generated_files if not f.get('valid', False)])}",
+            f"PDF转换: {log_data.get('pdf_count', 0)}",
             "",
+            f"输出目录: {log_data.get('output_dir', 'N/A')}",
+            f"Word目录: {log_data.get('word_dir', 'N/A')}",
+            f"PDF目录: {log_data.get('pdf_dir', 'N/A')}",
+            "",
+        ]
+        
+        if log_data.get('pdf_combined_path'):
+            report_lines.extend([
+                f"PDF合集: {os.path.basename(log_data['pdf_combined_path'])}",
+                "",
+            ])
+        
+        report_lines.extend([
             "-" * 60,
             "已生成文件列表:",
             "-" * 60,
-        ]
+        ])
         
         for f in generated_files:
             status = "✓ 有效" if f.get('valid', False) else f"✗ {f.get('reason', '无效')}"
-            report_lines.append(f"  {f['filename']} - {status}")
+            pdf_status = " (已转PDF)" if f.get('pdf_filepath') else ""
+            report_lines.append(f"  {f['filename']}{pdf_status} - {status}")
         
         if failed_persons:
             report_lines.extend([
