@@ -15,13 +15,23 @@
     - 应用配置: 批处理大小、重试次数等全局设置
 
 设计思路:
-    使用dataclass装饰器定义配置类，提供类型安全的配置管理，
-    同时支持默认值设置和配置的灵活组合。
+    - 使用dataclass装饰器定义配置类，提供类型安全的配置管理
+    - 支持默认值设置和配置的灵活组合
+    - 使用绝对路径确保模板和输出目录的正确定位
 
 使用方式:
     1. 直接导入CONFIG全局实例使用默认配置
     2. 如需自定义配置，可创建AppConfig实例并传入自定义参数
     3. 在程序启动时调用ensure_directories确保目录存在
+
+核心配置类:
+    - AIConfig: 管理AI服务的配置参数
+    - TemplateConfig: 管理模板相关的配置参数
+    - AppConfig: 整合所有配置，提供统一的配置访问入口
+
+重要功能:
+    - ensure_directories: 确保配置中的目录存在，不存在则创建
+    - get_default_config: 创建默认的应用配置实例
 """
 
 # 导入必要的模块
@@ -79,9 +89,9 @@ class TemplateConfig:
         supported_formats: 支持的模板格式元组
     """
     # 模板文件存储目录，存放各类模板文件
-    template_dir: str = "templates"  # 模板目录，存放各类模板文件
+    template_dir: str = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates")  # 模板目录，存放各类模板文件
     # 输出文件存储目录，存放处理后的文件
-    output_dir: str = "output"  # 输出目录，存放处理后的文件
+    output_dir: str = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output")  # 输出目录，存放处理后的文件
     # 默认模板文件名，当未指定模板时使用
     default_template: str = "default_template.docx"  # 默认使用的模板
     # 支持的模板格式元组，包括docx、pdf、txt

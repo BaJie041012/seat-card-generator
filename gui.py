@@ -32,6 +32,7 @@ from template_processor import TemplateProcessor, create_template_processor
 from text_extractor import AIExtractor, create_extractor
 
 
+
 # ------------------------------------------------------------------------------
 # 主应用程序类
 # 功能: 应用程序主窗口，整合所有功能模块
@@ -74,9 +75,9 @@ class TextProcessorApp:
             6. 初始化目录结构
         """
         self.root = root
-        self.root.title("自动化文本处理与模板填充程序")
-        self.root.geometry("900x600")  # 初始窗口大小
-        self.root.minsize(800, 500)  # 最小窗口大小
+        self.root.title("文本处理与席卡生成程序")
+        self.root.geometry("950x650")  # 初始窗口大小
+        self.root.minsize(850, 550)  # 最小窗口大小
         
         # 服务实例(延迟初始化)
         self.ai_service: Optional[AIService] = None
@@ -85,7 +86,6 @@ class TextProcessorApp:
         
         # 当前状态
         self.current_template: str = ""  # 当前模板路径
-        self.template_fields: List[str] = []  # 模板字段列表
         
         # 构建界面
         self._create_menu()  # 创建菜单栏
@@ -167,101 +167,85 @@ class TextProcessorApp:
         布局结构:
             左侧 - 输入区域:
                 - 文本输入框
-                - AI提取选项和按钮
+                - 席卡生成设置
             右侧 - 输出区域:
-                - 模板选择下拉框
-                - 模板字段显示
+                - 模板选择
                 - 结果显示区
                 - 操作按钮
         """
         # 主框架
-        main_frame = ttk.Frame(self.root, padding="5")
+        main_frame = ttk.Frame(self.root, padding="10")
         main_frame.pack(fill=tk.BOTH, expand=True)
         
         # ==================== 左侧输入区域 ====================
-        left_frame = ttk.LabelFrame(main_frame, text="输入区域", padding="5")
-        left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 5))
+        left_frame = ttk.LabelFrame(main_frame, text="输入区域", padding="10")
+        left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 10))
         
         # 文本输入标签
-        ttk.Label(left_frame, text="请输入文本内容:").pack(anchor=tk.W)
+        ttk.Label(left_frame, text="请输入人员信息文本:").pack(anchor=tk.W, pady=(0, 5))
         
         # 文本输入框(带滚动条)
-        self.input_text = scrolledtext.ScrolledText(left_frame, height=12, wrap=tk.WORD)
+        self.input_text = scrolledtext.ScrolledText(left_frame, height=15, wrap=tk.WORD)
         self.input_text.pack(fill=tk.BOTH, expand=True, pady=5)
         
         # 席卡生成框架
-        card_settings_frame = ttk.LabelFrame(left_frame, text="席卡生成", padding="5")
-        card_settings_frame.pack(fill=tk.X, pady=5)
+        card_settings_frame = ttk.LabelFrame(left_frame, text="席卡生成设置", padding="10")
+        card_settings_frame.pack(fill=tk.X, pady=10)
         
         # 活动名称输入
-        ttk.Label(card_settings_frame, text="活动名称:").pack(side=tk.LEFT, padx=2)
+        name_frame = ttk.Frame(card_settings_frame)
+        name_frame.pack(fill=tk.X, pady=5)
+        ttk.Label(name_frame, text="活动名称:", width=10).pack(side=tk.LEFT, padx=5, anchor=tk.W)
         self.event_name_var = tk.StringVar(value="")
-        ttk.Entry(card_settings_frame, textvariable=self.event_name_var, width=20).pack(side=tk.LEFT, padx=2)
+        ttk.Entry(name_frame, textvariable=self.event_name_var, width=40).pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
         
         # 席卡显示内容选择
-        ttk.Label(card_settings_frame, text="显示内容:").pack(side=tk.LEFT, padx=(10, 2))
+        display_frame = ttk.Frame(card_settings_frame)
+        display_frame.pack(fill=tk.X, pady=5)
+        ttk.Label(display_frame, text="显示内容:", width=10).pack(side=tk.LEFT, padx=5, anchor=tk.W)
         self.card_display_var = tk.StringVar(value="name")  # 默认显示姓名
-        ttk.Radiobutton(card_settings_frame, text="姓名", variable=self.card_display_var, value="name").pack(side=tk.LEFT, padx=2)
-        ttk.Radiobutton(card_settings_frame, text="公司名", variable=self.card_display_var, value="company").pack(side=tk.LEFT, padx=2)
+        ttk.Radiobutton(display_frame, text="姓名", variable=self.card_display_var, value="name").pack(side=tk.LEFT, padx=10)
+        ttk.Radiobutton(display_frame, text="公司名", variable=self.card_display_var, value="company").pack(side=tk.LEFT, padx=10)
         
         # 生成按钮
-        ttk.Button(card_settings_frame, text="生成", command=self._generate_cards).pack(side=tk.LEFT, padx=(15, 2))
-        
-        # AI提取选项框架
-        extract_frame = ttk.LabelFrame(left_frame, text="AI智能提取", padding="5")
-        extract_frame.pack(fill=tk.X, pady=5)
-        
-        # 提取选项复选框
-        self.extract_name_var = tk.BooleanVar(value=True)  # 提取姓名
-        self.extract_company_var = tk.BooleanVar(value=True)  # 提取单位
-        self.extract_position_var = tk.BooleanVar(value=True)  # 提取职位
-        
-        ttk.Checkbutton(extract_frame, text="姓名", variable=self.extract_name_var).pack(side=tk.LEFT, padx=8)
-        ttk.Checkbutton(extract_frame, text="单位", variable=self.extract_company_var).pack(side=tk.LEFT, padx=8)
-        ttk.Checkbutton(extract_frame, text="职位", variable=self.extract_position_var).pack(side=tk.LEFT, padx=8)
-        
-        # 提取按钮
-        ttk.Button(extract_frame, text="提取", command=self._extract).pack(side=tk.LEFT, padx=8)
+        button_frame = ttk.Frame(card_settings_frame)
+        button_frame.pack(fill=tk.X, pady=5)
+        ttk.Button(button_frame, text="生成席卡", command=self._generate_cards, width=20).pack(side=tk.RIGHT, padx=5)
         
         # ==================== 右侧输出区域 ====================
-        right_frame = ttk.LabelFrame(main_frame, text="输出区域", padding="5")
+        right_frame = ttk.LabelFrame(main_frame, text="输出区域", padding="10")
         right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
         
         # 模板选择框架
-        template_frame = ttk.LabelFrame(right_frame, text="模板选择", padding="5")
-        template_frame.pack(fill=tk.X, pady=5)
+        template_frame = ttk.LabelFrame(right_frame, text="模板选择", padding="10")
+        template_frame.pack(fill=tk.X, pady=10)
         
         # 模板下拉框
         self.template_var = tk.StringVar()
         self.template_combo = ttk.Combobox(template_frame, textvariable=self.template_var, state='readonly')
-        self.template_combo.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 5))
+        self.template_combo.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 10))
         self.template_combo.bind('<<ComboboxSelected>>', self._on_template_selected)  # 绑定选择事件
         
         # 浏览按钮
-        ttk.Button(template_frame, text="浏览...", command=self._browse_template).pack(side=tk.RIGHT)
-        
-        # 模板字段显示框架
-        fields_frame = ttk.LabelFrame(right_frame, text="模板字段", padding="5")
-        fields_frame.pack(fill=tk.X, pady=5)
-        
-        # 字段显示文本框(只读)
-        self.fields_text = tk.Text(fields_frame, height=3, wrap=tk.WORD, state=tk.DISABLED)
-        self.fields_text.pack(fill=tk.X)
+        ttk.Button(template_frame, text="浏览...", command=self._browse_template, width=10).pack(side=tk.RIGHT)
         
         # 结果显示标签
-        ttk.Label(right_frame, text="处理结果:").pack(anchor=tk.W)
+        ttk.Label(right_frame, text="处理结果:").pack(anchor=tk.W, pady=(0, 5))
         
         # 结果显示文本框(只读，带滚动条)
-        self.output_text = scrolledtext.ScrolledText(right_frame, height=12, wrap=tk.WORD, state=tk.DISABLED)
-        self.output_text.pack(fill=tk.BOTH, expand=True, pady=5)
+        self.output_text = scrolledtext.ScrolledText(right_frame, height=15, wrap=tk.WORD, state=tk.DISABLED)
+        self.output_text.pack(fill=tk.BOTH, expand=True, pady=10)
         
         # 操作按钮框架
         output_button_frame = ttk.Frame(right_frame)
-        output_button_frame.pack(fill=tk.X, pady=5)
+        output_button_frame.pack(fill=tk.X, pady=10)
         
-        ttk.Button(output_button_frame, text="保存结果", command=self._save_result).pack(side=tk.LEFT, padx=2)
-        ttk.Button(output_button_frame, text="打开输出目录", command=self._open_output_dir).pack(side=tk.LEFT, padx=2)
-        ttk.Button(output_button_frame, text="复制结果", command=self._copy_result).pack(side=tk.LEFT, padx=2)
+        # 居中对齐按钮
+        output_button_frame.columnconfigure(0, weight=1)
+        output_button_frame.columnconfigure(1, weight=1)
+        
+        ttk.Button(output_button_frame, text="打开输出目录", command=self._open_output_dir, width=15).pack(side=tk.LEFT, padx=10, fill=tk.X, expand=True)
+        ttk.Button(output_button_frame, text="复制结果", command=self._copy_result, width=15).pack(side=tk.LEFT, padx=10, fill=tk.X, expand=True)
     
     # --------------------------------------------------------------------------
     # 状态栏创建
@@ -275,14 +259,14 @@ class TextProcessorApp:
             - 状态文本标签
             - 进度条
         """
+        # 进度条
+        self.progress = ttk.Progressbar(self.root, mode='determinate')
+        self.progress.pack(side=tk.BOTTOM, fill=tk.X, pady=(0, 4), padx=10)
+        
         # 状态文本
         self.status_var = tk.StringVar(value="就绪")
         status_bar = ttk.Label(self.root, textvariable=self.status_var, relief=tk.SUNKEN, anchor=tk.W)
-        status_bar.pack(side=tk.BOTTOM, fill=tk.X)
-        
-        # 进度条
-        self.progress = ttk.Progressbar(self.root, mode='determinate')
-        self.progress.pack(side=tk.BOTTOM, fill=tk.X)
+        status_bar.pack(side=tk.BOTTOM, fill=tk.X, pady=(0, 8), padx=10)
     
     # --------------------------------------------------------------------------
     # 模板列表刷新
@@ -322,26 +306,11 @@ class TextProcessorApp:
             event: 事件对象(可能为None)
         
         功能说明:
-            当用户选择模板时:
-            1. 更新当前模板路径
-            2. 提取模板中的占位符
-            3. 在字段显示区显示占位符列表
+            当用户选择模板时更新当前模板路径
         """
         template_name = self.template_var.get()
         if template_name:
             self.current_template = os.path.join(CONFIG.template.template_dir, template_name)
-            self.template_fields = self.template_processor.get_template_placeholders(self.current_template)
-            
-            # 更新字段显示
-            self.fields_text.config(state=tk.NORMAL)
-            self.fields_text.delete(1.0, tk.END)
-            if self.template_fields:
-                self.fields_text.insert(tk.END, "模板字段:\n")
-                for field in self.template_fields:
-                    self.fields_text.insert(tk.END, f"  • {field}\n")
-            else:
-                self.fields_text.insert(tk.END, "未检测到模板字段")
-            self.fields_text.config(state=tk.DISABLED)
     
     # --------------------------------------------------------------------------
     # 模板浏览
@@ -445,62 +414,9 @@ class TextProcessorApp:
         
         return True
     
-    # --------------------------------------------------------------------------
-    # 提取功能
-    # 功能: 执行AI信息提取(制表符分隔格式)
-    # --------------------------------------------------------------------------
-    def _extract(self):
-        """
-        执行AI提取(制表符分隔格式)
-        
-        功能说明:
-            1. 获取输入文本
-            2. 检查AI服务
-            3. 获取提取选项
-            4. 在后台线程执行提取
-            5. 显示结果
-        """
-        text = self.input_text.get(1.0, tk.END).strip()
-        if not text:
-            messagebox.showwarning("警告", "请输入文本内容")
-            return
-        
-        if not self._check_ai_extractor():
-            return
-        
-        # 获取提取选项
-        include_name = self.extract_name_var.get()
-        include_company = self.extract_company_var.get()
-        include_position = self.extract_position_var.get()
-        
-        if not include_name and not include_company and not include_position:
-            messagebox.showwarning("警告", "请至少选择一项提取内容")
-            return
-        
-        self.status_var.set("正在使用AI提取...")
-        self.progress['value'] = 0
-        
-        # 在后台线程执行提取
-        def extract_thread():
-            try:
-                self.root.after(0, lambda: self.progress.config(value=30))
-                
-                result = self.ai_extractor.format_output(
-                    text,
-                    include_name=include_name,
-                    include_company=include_company,
-                    include_position=include_position,
-                    separator="\t"
-                )
-                
-                self.root.after(0, lambda: self.progress.config(value=100))
-                self.root.after(0, lambda: self._display_extract_result(result, "AI提取结果"))
-                self.root.after(0, lambda: self.status_var.set("AI提取完成"))
-                
-            except Exception as e:
-                self.root.after(0, lambda: self._display_error(str(e)))
-        
-        threading.Thread(target=extract_thread, daemon=True).start()
+
+    
+
     
     # --------------------------------------------------------------------------
     # 席卡生成功能
@@ -587,7 +503,8 @@ class TextProcessorApp:
                     
                     display_text += f"\n质量报告: {result['report_path']}"
                     
-                    self.root.after(0, lambda: self._display_extract_result(display_text, "席卡生成结果"))
+                    # 直接更新输出文本
+                    self.root.after(0, lambda: self._update_output_text(display_text, "席卡生成结果"))
                     self.root.after(0, lambda: self.status_var.set(f"席卡生成完成，共 {valid_count} 个有效文件"))
                 else:
                     self.root.after(0, lambda: self._display_error(result['error']))
@@ -1185,113 +1102,17 @@ class TextProcessorApp:
             else:
                 paragraph.add_run(remaining_text)
     
-    # --------------------------------------------------------------------------
-    # 表格格式提取
-    # 功能: 执行AI信息提取并格式化为表格
-    # --------------------------------------------------------------------------
-    def _extract_table(self):
-        """
-        执行AI提取(表格格式)
-        
-        功能说明:
-            与_extract类似，但输出格式为可视化表格。
-        """
-        text = self.input_text.get(1.0, tk.END).strip()
-        if not text:
-            messagebox.showwarning("警告", "请输入文本内容")
-            return
-        
-        if not self._check_ai_extractor():
-            return
-        
-        include_name = self.extract_name_var.get()
-        include_company = self.extract_company_var.get()
-        include_position = self.extract_position_var.get()
-        
-        if not include_name and not include_company and not include_position:
-            messagebox.showwarning("警告", "请至少选择一项提取内容")
-            return
-        
-        self.status_var.set("正在使用AI提取...")
-        self.progress['value'] = 0
-        
-        def extract_thread():
-            try:
-                self.root.after(0, lambda: self.progress.config(value=30))
-                
-                result = self.ai_extractor.format_as_table(
-                    text,
-                    include_name=include_name,
-                    include_company=include_company,
-                    include_position=include_position
-                )
-                
-                self.root.after(0, lambda: self.progress.config(value=100))
-                self.root.after(0, lambda: self._display_extract_result(result, "AI表格格式结果"))
-                self.root.after(0, lambda: self.status_var.set("AI提取完成"))
-                
-            except Exception as e:
-                self.root.after(0, lambda: self._display_error(str(e)))
-        
-        threading.Thread(target=extract_thread, daemon=True).start()
+
+    
+
     
     # --------------------------------------------------------------------------
-    # 打印格式提取
-    # 功能: 执行AI信息提取并格式化为打印友好格式
+    # 更新输出文本
+    # 功能: 在输出区域显示结果文本
     # --------------------------------------------------------------------------
-    def _extract_print(self):
+    def _update_output_text(self, result: str, title: str):
         """
-        执行AI提取(打印格式)
-        
-        功能说明:
-            与_extract类似，但输出格式适合打印。
-        """
-        text = self.input_text.get(1.0, tk.END).strip()
-        if not text:
-            messagebox.showwarning("警告", "请输入文本内容")
-            return
-        
-        if not self._check_ai_extractor():
-            return
-        
-        include_name = self.extract_name_var.get()
-        include_company = self.extract_company_var.get()
-        include_position = self.extract_position_var.get()
-        
-        if not include_name and not include_company and not include_position:
-            messagebox.showwarning("警告", "请至少选择一项提取内容")
-            return
-        
-        self.status_var.set("正在使用AI提取...")
-        self.progress['value'] = 0
-        
-        def extract_thread():
-            try:
-                self.root.after(0, lambda: self.progress.config(value=30))
-                
-                result = self.ai_extractor.format_for_print(
-                    text,
-                    include_name=include_name,
-                    include_company=include_company,
-                    include_position=include_position
-                )
-                
-                self.root.after(0, lambda: self.progress.config(value=100))
-                self.root.after(0, lambda: self._display_extract_result(result, "AI打印格式结果"))
-                self.root.after(0, lambda: self.status_var.set("AI提取完成"))
-                
-            except Exception as e:
-                self.root.after(0, lambda: self._display_error(str(e)))
-        
-        threading.Thread(target=extract_thread, daemon=True).start()
-    
-    # --------------------------------------------------------------------------
-    # 提取结果显示
-    # 功能: 在输出区域显示提取结果
-    # --------------------------------------------------------------------------
-    def _display_extract_result(self, result: str, title: str):
-        """
-        显示提取结果
+        更新输出文本
         
         参数:
             result: 结果文本
@@ -1303,7 +1124,6 @@ class TextProcessorApp:
         self.output_text.insert(tk.END, "-" * 40 + "\n")
         self.output_text.insert(tk.END, result)
         self.output_text.config(state=tk.DISABLED)
-        self.status_var.set(f"提取完成")
     
     # --------------------------------------------------------------------------
     # 复制结果

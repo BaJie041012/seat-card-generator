@@ -276,7 +276,7 @@ def index():
             <li>确保防火墙已允许端口 {{ port }} 的入站连接</li>
             <li>在同一网段的设备上，打开浏览器访问: <code>http://{{ local_ip }}:{{ port }}</code></li>
             <li>在上方的表单中输入人员信息，选择模板，点击生成席卡按钮</li>
-            <li>等待生成完成后，查看生成结果和输出文件</li>
+            <li>等待生成完成后，查看生成结果和下载生成的文件</li>
         </ol>
         
         <div class="info-box">
@@ -286,13 +286,12 @@ def index():
                 <li>确保AI服务API密钥已正确配置</li>
                 <li>模板文件应放在 templates 目录中</li>
                 <li>生成的文件将保存在 output 目录中</li>
+                <li>支持的模板格式: docx、pdf、txt</li>
+                <li>席卡生成功能仅支持.docx格式的模板文件</li>
             </ul>
         </div>
         
-        <div style="margin-top: 30px; text-align: center;">
-            <a href="/api/templates" class="button">查看模板列表</a>
-            <a href="/api/output" class="button">查看输出目录</a>
-        </div>
+
         
         <script>
             // 加载模板列表
