@@ -26,6 +26,9 @@ env/
 # Output files
 output/
 
+# Local release binaries
+releases/
+
 # OS files
 desktop.ini
 Thumbs.db
