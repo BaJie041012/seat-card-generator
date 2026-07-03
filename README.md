@@ -22,7 +22,7 @@
 
 ### Android APK（推荐）
 
-从 [Releases](https://github.com/BaJie041012/seat-card-generator/releases) 页面下载最新 APK 安装即可。
+从 [Releases](https://github.com/BaJie041012/seat-card-generator/releases) 页面下载最新 APK（`releases/apk/` 目录）安装即可。
 
 1. 安装 APK，打开应用
 2. API Key 已内置，可直接使用；如需更换，点击右上角设置
@@ -131,6 +131,11 @@ python scripts/start_server.py
 │   └── assets/fonts/           # 内置中文字体
 ├── templates/                  # 席卡模板目录
 ├── releases/                   # 发布版本归档
+│   ├── apk/                    # Android APK 发布包
+│   │   ├── seat-card-generator-v1.0.0.apk
+│   │   └── seat-card-generator-v2.0.0.apk
+│   └── exe/                    # Windows EXE 发布包
+│       └── seat-card-generator-v1.0.0.exe
 ├── output/                     # 生成文件输出目录
 └── requirements.txt            # Python 依赖
 ```
