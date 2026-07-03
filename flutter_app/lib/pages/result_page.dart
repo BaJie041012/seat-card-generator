@@ -1,235 +1,155 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:open_filex/open_filex.dart';
 import '../models/card_models.dart';
-import '../services/api_service.dart';
 
 class ResultPage extends StatelessWidget {
-  final GenerateCardsResponse response;
-  final ApiService apiService;
+  final GenerateResult result;
+  const ResultPage({super.key, required this.result});
 
-  const ResultPage({
-    super.key,
-    required this.response,
-    required this.apiService,
-  });
+  Future<void> _shareFile(BuildContext context, String filePath) async {
+    final file = File(filePath);
+    if (!await file.exists()) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('文件不存在')),
+        );
+      }
+      return;
+    }
+    await Share.shareXFiles([XFile(filePath)]);
+  }
 
-  void _showDownloadDialog(BuildContext context, String url) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('下载文件'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('请在浏览器中打开以下链接下载文件：'),
-            const SizedBox(height: 8),
-            SelectableText(
-              url,
-              style: const TextStyle(fontSize: 12, color: Colors.blue),
+  Future<void> _openFile(BuildContext context, String filePath) async {
+    final result = await OpenFilex.open(filePath);
+    if (result.type != ResultType.done && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('打开失败: ${result.message}')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final successCards = result.cards.where((c) => c.success).toList();
+    final failedCards = result.cards.where((c) => !c.success).toList();
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('生成结果'),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          // 汇总
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildStat(context, '成功', result.successCount, Colors.green),
+                      _buildStat(context, '失败', result.failCount, Colors.red),
+                      _buildStat(context, '总计', result.cards.length, Colors.blue),
+                    ],
+                  ),
+                  if (result.combinedPdfPath != null) ...[
+                    const Divider(height: 24),
+                    ListTile(
+                      leading: const Icon(Icons.picture_as_pdf, color: Colors.red),
+                      title: const Text('席卡合集 PDF'),
+                      subtitle: const Text('包含所有席卡的合并文件'),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.open_in_new),
+                            onPressed: () => _openFile(context, result.combinedPdfPath!),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.share),
+                            onPressed: () => _shareFile(context, result.combinedPdfPath!),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Clipboard.setData(ClipboardData(text: url));
-              Navigator.of(ctx).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('链接已复制到剪贴板')),
-              );
-            },
-            child: const Text('复制链接'),
           ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('关闭'),
+
+          const SizedBox(height: 16),
+
+          // 单个席卡列表
+          Text('单个席卡', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+
+          ...successCards.map((card) => Card(
+                child: ListTile(
+                  leading: const Icon(Icons.check_circle, color: Colors.green),
+                  title: Text(card.displayName),
+                  subtitle: Text(File(card.filePath).uri.pathSegments.last),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.open_in_new, size: 20),
+                        onPressed: () => _openFile(context, card.filePath),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.share, size: 20),
+                        onPressed: () => _shareFile(context, card.filePath),
+                      ),
+                    ],
+                  ),
+                ),
+              )),
+
+          // 失败列表
+          if (failedCards.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Text('生成失败', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            ...failedCards.map((card) => Card(
+                  color: Theme.of(context).colorScheme.errorContainer,
+                  child: ListTile(
+                    leading: Icon(Icons.error,
+                        color: Theme.of(context).colorScheme.error),
+                    title: Text(card.displayName),
+                    subtitle: Text(card.error ?? '未知错误'),
+                  ),
+                )),
+          ],
+
+          const SizedBox(height: 24),
+
+          // 输出目录信息
+          Card(
+            color: Theme.of(context).colorScheme.surfaceContainerLow,
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Text(
+                '文件保存在: ${result.outputDir}',
+                style: const TextStyle(fontSize: 12),
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('生成结果'),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 600),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // 成功摘要卡片
-              Card(
-                color: colorScheme.primaryContainer,
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    children: [
-                      Icon(Icons.check_circle,
-                          size: 48, color: colorScheme.primary),
-                      const SizedBox(height: 8),
-                      Text(
-                        '成功生成 ${response.count} 张席卡',
-                        style: Theme.of(context).textTheme.headlineSmall,
-                      ),
-                      if (response.outputDir != null) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          response.outputDir!,
-                          style: Theme.of(context).textTheme.bodySmall,
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Word 文件列表
-              if (response.wordFiles.isNotEmpty) ...[
-                _buildSectionTitle(context, 'Word 文件',
-                    Icons.description, response.wordFiles.length),
-                const SizedBox(height: 8),
-                ...response.wordFiles.map((f) => _buildFileTile(
-                      context,
-                      f.filename,
-                      apiService.getDownloadUrl(f.fileId),
-                      Icons.description,
-                      colorScheme.tertiary,
-                    )),
-              ],
-
-              const SizedBox(height: 16),
-
-              // PDF 文件列表
-              if (response.pdfFiles.isNotEmpty) ...[
-                _buildSectionTitle(context, 'PDF 文件',
-                    Icons.picture_as_pdf, response.pdfFiles.length),
-                const SizedBox(height: 8),
-                ...response.pdfFiles.map((f) => _buildFileTile(
-                      context,
-                      f.filename,
-                      apiService.getDownloadUrl(f.fileId),
-                      Icons.picture_as_pdf,
-                      Colors.red,
-                    )),
-              ],
-
-              const SizedBox(height: 16),
-
-              // PDF 合集
-              if (response.pdfCombinedId != null) ...[
-                Card(
-                  child: ListTile(
-                    leading: Icon(Icons.library_books,
-                        color: colorScheme.primary, size: 32),
-                    title: const Text('PDF 合集'),
-                    subtitle: const Text('所有席卡合并为一个 PDF'),
-                    trailing: const Icon(Icons.download),
-                    onTap: () => _showDownloadDialog(
-                        context, apiService.getDownloadUrl(response.pdfCombinedId!)),
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ],
-
-              // 质量报告
-              if (response.reportId != null) ...[
-                Card(
-                  child: ListTile(
-                    leading: Icon(Icons.assessment,
-                        color: colorScheme.primary, size: 32),
-                    title: const Text('质量报告'),
-                    subtitle: const Text('查看生成质量详情'),
-                    trailing: const Icon(Icons.download),
-                    onTap: () => _showDownloadDialog(
-                        context, apiService.getDownloadUrl(response.reportId!)),
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ],
-
-              // 失败记录
-              if (response.failed.isNotEmpty) ...[
-                Card(
-                  color: colorScheme.errorContainer,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(Icons.error_outline,
-                                color: colorScheme.error),
-                            const SizedBox(width: 8),
-                            Text(
-                              '失败记录 (${response.failed.length})',
-                              style: TextStyle(
-                                color: colorScheme.onErrorContainer,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        ...response.failed.map((name) => Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 2),
-                              child: Text(
-                                '  $name',
-                                style: TextStyle(
-                                    color: colorScheme.onErrorContainer),
-                              ),
-                            )),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSectionTitle(
-      BuildContext context, String title, IconData icon, int count) {
-    return Row(
+  Widget _buildStat(BuildContext context, String label, int count, Color color) {
+    return Column(
       children: [
-        Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
-        const SizedBox(width: 8),
-        Text(
-          '$title ($count)',
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
+        Text('$count',
+            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: color)),
+        Text(label, style: Theme.of(context).textTheme.bodySmall),
       ],
-    );
-  }
-
-  Widget _buildFileTile(BuildContext context, String filename, String url,
-      IconData icon, Color iconColor) {
-    return Card(
-      child: ListTile(
-        leading: Icon(icon, color: iconColor),
-        title: Text(
-          filename,
-          style: const TextStyle(fontSize: 14),
-          overflow: TextOverflow.ellipsis,
-        ),
-        trailing: const Icon(Icons.download, size: 20),
-        onTap: () => _showDownloadDialog(context, url),
-      ),
     );
   }
 }

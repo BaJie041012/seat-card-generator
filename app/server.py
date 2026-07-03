@@ -34,8 +34,11 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-# 添加项目根目录到Python路径
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# 添加项目根目录和src/到Python路径
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+for _p in (_PROJECT_ROOT, os.path.join(_PROJECT_ROOT, 'src')):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
 
 # 导入项目模块
 from config import CONFIG, ensure_directories

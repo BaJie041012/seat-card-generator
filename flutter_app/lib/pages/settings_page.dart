@@ -1,167 +1,155 @@
 import 'package:flutter/material.dart';
-import '../services/api_service.dart';
+import '../services/settings_service.dart';
 
 class SettingsPage extends StatefulWidget {
-  final ApiService apiService;
-
-  const SettingsPage({super.key, required this.apiService});
+  const SettingsPage({super.key});
 
   @override
   State<SettingsPage> createState() => _SettingsPageState();
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  late TextEditingController _urlController;
-  bool _isChecking = false;
-  bool? _isConnected;
+  final _settingsService = SettingsService();
+  final _apiKeyController = TextEditingController();
+  final _apiUrlController = TextEditingController();
+  final _modelController = TextEditingController();
+  bool _obscureApiKey = true;
+  bool _saved = false;
 
   @override
   void initState() {
     super.initState();
-    _urlController = TextEditingController(text: widget.apiService.baseUrl);
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final key = await _settingsService.getApiKey();
+    final url = await _settingsService.getApiUrl();
+    final model = await _settingsService.getModel();
+    if (mounted) {
+      _apiKeyController.text = key;
+      _apiUrlController.text = url;
+      _modelController.text = model;
+    }
   }
 
   @override
   void dispose() {
-    _urlController.dispose();
+    _apiKeyController.dispose();
+    _apiUrlController.dispose();
+    _modelController.dispose();
     super.dispose();
   }
 
-  Future<void> _testConnection() async {
-    setState(() {
-      _isChecking = true;
-      _isConnected = null;
-    });
-
-    // 先保存 URL
-    widget.apiService.baseUrl = _urlController.text.trim();
-
-    final connected = await widget.apiService.healthCheck();
-
-    if (!mounted) return;
-    setState(() {
-      _isChecking = false;
-      _isConnected = connected;
-    });
-  }
-
-  void _save() {
-    widget.apiService.baseUrl = _urlController.text.trim();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('服务器地址已保存')),
-    );
-    Navigator.pop(context, 'refresh');
+  Future<void> _save() async {
+    await _settingsService.saveApiKey(_apiKeyController.text.trim());
+    await _settingsService.saveApiUrl(_apiUrlController.text.trim());
+    await _settingsService.saveModel(_modelController.text.trim());
+    setState(() => _saved = true);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('设置已保存'), duration: Duration(seconds: 1)),
+      );
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) Navigator.pop(context);
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('服务器设置'),
+        title: const Text('设置'),
         actions: [
           TextButton(
-            onPressed: _save,
-            child: const Text('保存'),
+            onPressed: _saved ? null : _save,
+            child: Text(_saved ? '已保存' : '保存',
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: _saved ? Colors.grey : null)),
           ),
         ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 600),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('API 服务器地址',
-                          style: Theme.of(context).textTheme.titleMedium),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: _urlController,
-                        decoration: const InputDecoration(
-                          hintText: 'http://localhost:8000',
-                          labelText: '服务器 URL',
-                          helperText: '输入 Python 后端服务的地址',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // MiniMax API Key
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('MiniMax API',
+                        style: Theme.of(context).textTheme.titleMedium),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _apiKeyController,
+                      obscureText: _obscureApiKey,
+                      decoration: InputDecoration(
+                        labelText: 'API Key',
+                        hintText: '输入你的 MiniMax API Key',
+                        border: const OutlineInputBorder(),
+                        suffixIcon: IconButton(
+                          icon: Icon(_obscureApiKey
+                              ? Icons.visibility_off
+                              : Icons.visibility),
+                          onPressed: () => setState(
+                              () => _obscureApiKey = !_obscureApiKey),
                         ),
-                        keyboardType: TextInputType.url,
-                        onSubmitted: (_) => _testConnection(),
                       ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: FilledButton.icon(
-                              onPressed: _isChecking ? null : _testConnection,
-                              icon: _isChecking
-                                  ? const SizedBox(
-                                      width: 16,
-                                      height: 16,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: Colors.white,
-                                      ),
-                                    )
-                                  : const Icon(Icons.wifi),
-                              label: const Text('测试连接'),
-                            ),
-                          ),
-                        ],
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _apiUrlController,
+                      decoration: const InputDecoration(
+                        labelText: 'API 地址',
+                        border: OutlineInputBorder(),
                       ),
-                      if (_isConnected != null) ...[
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Icon(
-                              _isConnected!
-                                  ? Icons.check_circle
-                                  : Icons.error,
-                              color: _isConnected! ? Colors.green : Colors.red,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              _isConnected! ? '连接成功' : '连接失败',
-                              style: TextStyle(
-                                color:
-                                    _isConnected! ? Colors.green : Colors.red,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _modelController,
+                      decoration: const InputDecoration(
+                        labelText: '模型名称',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 16),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('使用说明',
-                          style: Theme.of(context).textTheme.titleMedium),
-                      const SizedBox(height: 12),
-                      const Text(
-                        '1. 确保 Python 后端服务已启动\n'
-                        '2. 桌面端默认地址: http://localhost:8000\n'
-                        '3. 局域网访问: http://<电脑IP>:8000\n'
-                        '4. 启动后端: python start_server.py',
-                        style: TextStyle(height: 1.6),
-                      ),
-                    ],
-                  ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // 说明
+            Card(
+              color: Theme.of(context).colorScheme.surfaceContainerLow,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('使用说明',
+                        style: Theme.of(context).textTheme.titleSmall),
+                    const SizedBox(height: 8),
+                    const Text(
+                      '1. 前往 minimaxi.com 注册账号并获取 API Key\n'
+                      '2. 将 API Key 填入上方输入框\n'
+                      '3. API 地址默认即可，无需修改\n'
+                      '4. 配置完成后返回主页即可开始生成席卡\n\n'
+                      '席卡将直接在手机上生成 PDF 文件，\n'
+                      '无需连接任何服务器。',
+                      style: TextStyle(height: 1.5),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
