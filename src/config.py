@@ -36,6 +36,7 @@
 
 # 导入必要的模块
 import os  # 用于文件和目录操作
+import sys  # 用于 PyInstaller 冻结模式检测
 from dataclasses import dataclass  # 用于创建数据类
 from typing import Optional  # 用于类型注解
 
@@ -88,10 +89,15 @@ class TemplateConfig:
         default_template: 默认模板文件名
         supported_formats: 支持的模板格式元组
     """
+    # 项目根目录：PyInstaller 打包后以 exe 所在目录为准，开发模式以 src/ 的父目录为准
+    if getattr(sys, 'frozen', False):
+        _root = os.path.dirname(sys.executable)
+    else:
+        _root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     # 模板文件存储目录，存放各类模板文件
-    template_dir: str = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates")  # 模板目录，存放各类模板文件
+    template_dir: str = os.path.join(_root, "templates")  # 模板目录，存放各类模板文件
     # 输出文件存储目录，存放处理后的文件
-    output_dir: str = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output")  # 输出目录，存放处理后的文件
+    output_dir: str = os.path.join(_root, "output")  # 输出目录，存放处理后的文件
     # 默认模板文件名，当未指定模板时使用
     default_template: str = "default_template.docx"  # 默认使用的模板
     # 支持的模板格式元组，包括docx、pdf、txt

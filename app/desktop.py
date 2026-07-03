@@ -13,13 +13,16 @@ import customtkinter as ctk
 
 # 兼容 PyInstaller 打包后的路径
 if getattr(sys, 'frozen', False):
-    BASE_DIR = os.path.dirname(sys.executable)
+    # PyInstaller 打包后：exe 所在目录即项目根
+    _BASE = os.path.dirname(sys.executable)
 else:
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    # 开发模式：app/ 的上一级即项目根
+    _BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# 确保能导入后端模块
-if BASE_DIR not in sys.path:
-    sys.path.insert(0, BASE_DIR)
+# 确保能导入 src/ 下的后端模块
+for _p in (_BASE, os.path.join(_BASE, 'src')):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
 
 from config import CONFIG, AIConfig, TemplateConfig, ensure_directories
 from ai_service import create_ai_service
