@@ -59,8 +59,8 @@ class AIConfig:
         temperature: 生成温度参数，控制输出随机性(0-1)
         timeout: 请求超时时间(秒)
     """
-    # API访问密钥，用于AI服务身份验证（从环境变量MINIMAX_API_KEY读取）
-    api_key: str = os.environ.get("MINIMAX_API_KEY", "")
+    # API访问密钥，优先从环境变量读取，否则使用内置默认密钥（开箱即用）
+    api_key: str = os.environ.get("MINIMAX_API_KEY", "sk-api-mR_lRPZgFVmmyx7OCp83-zqdd2nlvTYM-akr0KyrDIa1ZvrZV4F0sKmKOXULeT8xP3xOYnyEh4_DJTb760jnSL_HfEU2zMOudelCxSObltogy0X0RXx5a2c")
     # API服务基础地址，指向MiniMax API服务
     api_base_url: str = "https://api.minimaxi.com/v1"  # MiniMax API服务地址
     # 使用的AI模型名称，默认使用MiniMax-M2.5
