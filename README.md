@@ -44,16 +44,22 @@ export MINIMAX_API_KEY=your_api_key_here
 
 ### 启动方式
 
-**桌面 GUI：**
+**现代桌面版（推荐）：**
 
 ```bash
-python main.py
+python -m app.desktop
+```
+
+**经典桌面 GUI：**
+
+```bash
+python scripts/main.py --gui
 ```
 
 **Web 服务（端口 8000）：**
 
 ```bash
-python start_server.py
+python scripts/start_server.py
 ```
 
 启动后访问 `http://localhost:8000`，局域网设备用 `http://<本机IP>:8000` 访问。
@@ -89,25 +95,30 @@ python start_server.py
 ## 项目结构
 
 ```
-├── main.py               # 程序入口（GUI / CLI）
-├── gui.py                # 桌面 GUI（tkinter）
-├── server.py             # Web 服务（FastAPI）
-├── start_server.py       # 服务启动脚本
-├── card_generator.py     # 席卡生成核心模块
-├── config.py             # 配置管理
-├── ai_service.py         # AI 服务（MiniMax）
-├── text_extractor.py     # AI 文本提取
-├── template_processor.py # 模板处理器
-├── requirements.txt      # Python 依赖
-├── templates/            # 席卡模板目录
-└── output/               # 生成文件输出目录
+├── src/                        # 核心后端模块
+│   ├── config.py               # 配置管理
+│   ├── ai_service.py           # AI 服务（MiniMax）
+│   ├── text_extractor.py       # AI 文本提取
+│   ├── card_generator.py       # 席卡生成核心模块
+│   └── template_processor.py   # 模板处理器
+├── app/                        # 前端应用
+│   ├── desktop.py              # 现代桌面版（CustomTkinter）
+│   ├── gui.py                  # 经典桌面 GUI（tkinter）
+│   └── server.py               # Web 服务（FastAPI）
+├── scripts/                    # 启动脚本
+│   ├── main.py                 # CLI 入口
+│   └── start_server.py         # 服务启动脚本
+├── templates/                  # 席卡模板目录
+├── flutter_app/                # Flutter 跨平台应用
+├── output/                     # 生成文件输出目录
+└── requirements.txt            # Python 依赖
 ```
 
 ## 技术栈
 
 - **后端** — Python 3.8+, FastAPI, uvicorn
 - **前端** — 内嵌 HTML/CSS/JS Web 界面
-- **桌面** — tkinter
+- **桌面** — CustomTkinter（现代版）/ tkinter（经典版）
 - **AI** — MiniMax API (MiniMax-M2.5)
 - **文档处理** — python-docx, PyPDF2, reportlab
 - **PDF 转换** — win32com (主) / spire.doc (备)
