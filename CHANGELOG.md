@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2026-07-03
+
+### Changed
+- **APK 从 Flutter 迁移至原生 Kotlin**：彻底移除 Flutter 依赖，APK 从 64MB 缩减至 3.3MB（减少 95%）
+- **PDF 布局复刻 Python 模板**：复刻 Python 端 Word 模板的折叠桌牌布局（A4 横向、左右对称、折痕线）
+  - v4 模板：活动名称 16pt + 姓名 72pt/公司 36pt
+  - v5 模板：姓名 110pt 大字体居中
+  - 两字姓名自动插全角空格（复刻 Python `format_name` 逻辑）
+- **新增模板选择**：支持 v4 详细模板 / v5 简洁模板切换
+- **AI 集成完整**：MiniMax API 直连，3 次重试 + 指数退避 + fallback 本地解析
+
+### Technical
+- 原生 Kotlin + Android SDK，无第三方 UI 框架
+- Material 3 设计语言
+- PDF 生成：Android PdfDocument API
+- AI：MiniMax-M2.5（OpenAI 兼容格式）
+- 网络：OkHttp 4.12
+- 构建：AGP 8.5.0 / Gradle 8.7 / Kotlin 2.0.0
+
+---
+
 ## [2.0.2] - 2026-07-03
 
 ### Changed
