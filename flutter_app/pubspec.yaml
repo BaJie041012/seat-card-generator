@@ -1,7 +1,7 @@
 name: seat_card_app
 description: "席卡生成系统 - 本地AI驱动，一键生成会议席卡PDF"
 publish_to: 'none'
-version: 2.0.0+2
+version: 2.0.2+2
 
 environment:
   sdk: ^3.12.2

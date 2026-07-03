@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.2] - 2026-07-03
+
+### Changed
+- **APK 体积优化**：从 64MB 缩减至 21MB（减少 67%）
+  - 字体子集化：Noto Sans SC 从 16.95MB 缩减至 1.78MB（保留 GB2312 常用汉字）
+  - 仅打包 arm64-v8a 架构，移除 x86_64 和 armeabi-v7a
+  - 启用 R8 全模式代码压缩与资源缩减
+
+---
+
 ## [2.0.1] - 2026-07-03
 
 ### Changed
