@@ -40,7 +40,7 @@ class PdfGenerator(private val context: Context) {
     /**
      * 两名字中间插全角空格（复刻 Python 端 format_name 逻辑）
      */
-    private fun formatName(name: String): String {
+    internal fun formatName(name: String): String {
         return if (name.length == 2) {
             "${name[0]}\u3000${name[1]}"
         } else {
@@ -229,7 +229,7 @@ class PdfGenerator(private val context: Context) {
         combinedPdf.close()
     }
 
-    private fun sanitizeFileName(name: String): String {
+    internal fun sanitizeFileName(name: String): String {
         return name.replace(Regex("[<>:\"/\\\\|?*]"), "_")
             .take(50)
     }

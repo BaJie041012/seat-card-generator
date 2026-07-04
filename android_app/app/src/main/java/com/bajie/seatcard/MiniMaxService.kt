@@ -113,7 +113,7 @@ class MiniMaxService(
         }
     }
 
-    private fun parseAiResponse(response: String): List<PersonInfo> {
+    internal fun parseAiResponse(response: String): List<PersonInfo> {
         val start = response.indexOf('[')
         val end = response.lastIndexOf(']')
         if (start < 0 || end < 0 || end <= start) return emptyList()
@@ -140,7 +140,7 @@ class MiniMaxService(
     }
 
     /** Fallback：本地正则切分，仅提取姓名 */
-    private fun fallbackParse(text: String): List<PersonInfo> {
+    internal fun fallbackParse(text: String): List<PersonInfo> {
         val lines = text.split(Regex("[,;，；\\n]+"))
         val result = mutableListOf<PersonInfo>()
         val seen = mutableSetOf<String>()
