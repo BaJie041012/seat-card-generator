@@ -194,7 +194,7 @@ class PdfGenerator(private val context: Context) {
     /**
      * 合并多个 PDF 为合集。
      */
-    private fun generateCombined(pdfPaths: List<String>, outputFile: File) {
+    internal fun generateCombined(pdfPaths: List<String>, outputFile: File) {
         // 简单合并：创建新 PDF，逐页复制
         val combinedPdf = PdfDocument()
         val font = getTypeface()

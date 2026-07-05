@@ -9,7 +9,6 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import java.io.File
-import java.lang.reflect.Method
 
 /**
  * PdfGenerator 单元测试（使用 Robolectric 模拟 Android 环境）
@@ -26,137 +25,116 @@ class PdfGeneratorTest {
 
     private lateinit var context: Context
     private lateinit var generator: PdfGenerator
-    private lateinit var formatNameMethod: Method
-    private lateinit var sanitizeMethod: Method
-    private lateinit var generateCombinedMethod: Method
 
     @Before
     fun setUp() {
         context = RuntimeEnvironment.getApplication()
         generator = PdfGenerator(context)
-
-        // 反射访问 private 方法
-        formatNameMethod = PdfGenerator::class.java.getDeclaredMethod(
-            "formatName", String::class.java
-        ).apply { isAccessible = true }
-
-        sanitizeMethod = PdfGenerator::class.java.getDeclaredMethod(
-            "sanitizeFileName", String::class.java
-        ).apply { isAccessible = true }
-
-        generateCombinedMethod = PdfGenerator::class.java.getDeclaredMethod(
-            "generateCombined", List::class.java, File::class.java
-        ).apply { isAccessible = true }
     }
 
     // ==================== formatName 测试 ====================
 
     @Test
     fun formatName_twoChineseChars_insertsSpace() {
-        val result = formatNameMethod.invoke(generator, "张三")
-        assertEquals("张\u3000三", result)
+        assertEquals("张\u3000三", generator.formatName("张三"))
     }
 
     @Test
     fun formatName_threeOrMoreChars_unchanged() {
-        assertEquals("张三丰", formatNameMethod.invoke(generator, "张三丰"))
+        assertEquals("张三丰", generator.formatName("张三丰"))
     }
 
     @Test
     fun formatName_singleChar_unchanged() {
-        assertEquals("张", formatNameMethod.invoke(generator, "张"))
+        assertEquals("张", generator.formatName("张"))
     }
 
     @Test
     fun formatName_emptyString_unchanged() {
-        assertEquals("", formatNameMethod.invoke(generator, ""))
+        assertEquals("", generator.formatName(""))
     }
 
     @Test
     fun formatName_twoEnglishChars_unchanged() {
         // 非中文字符不插入全角空格
-        assertEquals("AB", formatNameMethod.invoke(generator, "AB"))
+        assertEquals("AB", generator.formatName("AB"))
     }
 
     @Test
     fun formatName_mixedTwoChars_unchanged() {
         // 混合字符（非全中文）不插入
-        assertEquals("A张", formatNameMethod.invoke(generator, "A张"))
+        assertEquals("A张", generator.formatName("A张"))
     }
 
     @Test
     fun formatName_fourChineseChars_unchanged() {
-        assertEquals("张三李四", formatNameMethod.invoke(generator, "张三李四"))
+        assertEquals("张三李四", generator.formatName("张三李四"))
     }
 
     // ==================== sanitizeFileName 测试 ====================
 
     @Test
     fun sanitizeFileName_removesIllegalChars() {
-        val result = sanitizeMethod.invoke(generator, "file<>name") as String
+        val result = generator.sanitizeFileName("file<>name")
         assertFalse(result.contains("<"))
         assertFalse(result.contains(">"))
     }
 
     @Test
     fun sanitizeFileName_removesColon() {
-        val result = sanitizeMethod.invoke(generator, "file:name") as String
+        val result = generator.sanitizeFileName("file:name")
         assertFalse(result.contains(":"))
     }
 
     @Test
     fun sanitizeFileName_removesSlash() {
-        val result = sanitizeMethod.invoke(generator, "file/name") as String
+        val result = generator.sanitizeFileName("file/name")
         assertFalse(result.contains("/"))
     }
 
     @Test
     fun sanitizeFileName_removesBackslash() {
-        val result = sanitizeMethod.invoke(generator, "file\\name") as String
+        val result = generator.sanitizeFileName("file\\name")
         assertFalse(result.contains("\\"))
     }
 
     @Test
     fun sanitizeFileName_removesQuestionMark() {
-        val result = sanitizeMethod.invoke(generator, "file?name") as String
+        val result = generator.sanitizeFileName("file?name")
         assertFalse(result.contains("?"))
     }
 
     @Test
     fun sanitizeFileName_removesAsterisk() {
-        val result = sanitizeMethod.invoke(generator, "file*name") as String
+        val result = generator.sanitizeFileName("file*name")
         assertFalse(result.contains("*"))
     }
 
     @Test
     fun sanitizeFileName_removesPipe() {
-        val result = sanitizeMethod.invoke(generator, "file|name") as String
+        val result = generator.sanitizeFileName("file|name")
         assertFalse(result.contains("|"))
     }
 
     @Test
     fun sanitizeFileName_truncatesAt50() {
         val longName = "a".repeat(100)
-        val result = sanitizeMethod.invoke(generator, longName) as String
-        assertEquals(50, result.length)
+        assertEquals(50, generator.sanitizeFileName(longName).length)
     }
 
     @Test
     fun sanitizeFileName_preservesChinese() {
-        val result = sanitizeMethod.invoke(generator, "张三的席卡") as String
-        assertEquals("张三的席卡", result)
+        assertEquals("张三的席卡", generator.sanitizeFileName("张三的席卡"))
     }
 
     @Test
     fun sanitizeFileName_emptyString() {
-        val result = sanitizeMethod.invoke(generator, "") as String
-        assertEquals("", result)
+        assertEquals("", generator.sanitizeFileName(""))
     }
 
     @Test
     fun sanitizeFileName_normalNameUnchanged() {
-        val result = sanitizeMethod.invoke(generator, "正常文件名") as String
-        assertEquals("正常文件名", result)
+        assertEquals("正常文件名", generator.sanitizeFileName("正常文件名"))
     }
 
     // ==================== generateAll 测试 ====================
@@ -196,9 +174,7 @@ class PdfGeneratorTest {
                 outputDir = tmpDir
             )
 
-            // 输出目录路径正确
             assertEquals(tmpDir.absolutePath, outputDir)
-            // 无失败
             assertTrue(failedNames.isEmpty())
         } finally {
             tmpDir.deleteRecursively()
@@ -257,7 +233,6 @@ class PdfGeneratorTest {
                 outputDir = tmpDir
             )
 
-            // 无公司名，回退到姓名
             assertEquals(1, successCards.size)
             assertTrue(failedNames.isEmpty())
         } finally {
@@ -301,7 +276,6 @@ class PdfGeneratorTest {
                 outputDir = tmpDir
             )
 
-            // 多人时应生成合集
             val combinedFiles = tmpDir.listFiles()?.filter {
                 it.name.startsWith("席卡合集_")
             }
@@ -325,7 +299,6 @@ class PdfGeneratorTest {
                 outputDir = tmpDir
             )
 
-            // 单人时不生成合集
             val combinedFiles = tmpDir.listFiles()?.filter {
                 it.name.startsWith("席卡合集_")
             }
@@ -342,9 +315,7 @@ class PdfGeneratorTest {
         val tmpDir = createTempDir("seatcard_test")
         try {
             val outputFile = File(tmpDir, "combined.pdf")
-            // 传入空路径列表（文件不存在会跳过）
-            generateCombinedMethod.invoke(generator, emptyList<String>(), outputFile)
-
+            generator.generateCombined(emptyList(), outputFile)
             assertTrue(outputFile.exists())
         } finally {
             tmpDir.deleteRecursively()
@@ -357,9 +328,7 @@ class PdfGeneratorTest {
         try {
             val outputFile = File(tmpDir, "combined.pdf")
             val fakePaths = listOf("/nonexistent/file1.pdf", "/nonexistent/file2.pdf")
-            generateCombinedMethod.invoke(generator, fakePaths, outputFile)
-
-            // 文件被创建但无内容页（源文件不存在被跳过）
+            generator.generateCombined(fakePaths, outputFile)
             assertTrue(outputFile.exists())
         } finally {
             tmpDir.deleteRecursively()

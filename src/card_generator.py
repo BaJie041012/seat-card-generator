@@ -200,7 +200,7 @@ def convert_docx_to_pdf(docx_path: str, pdf_path: str) -> bool:
 def merge_pdfs(pdf_files: list, output_path: str) -> bool:
     """合并多个PDF文件为一个"""
     try:
-        from PyPDF2 import PdfWriter, PdfReader
+        from pypdf import PdfWriter, PdfReader
         merger = PdfWriter()
         for pdf_file in pdf_files:
             with open(pdf_file, 'rb') as f:
